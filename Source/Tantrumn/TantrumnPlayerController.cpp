@@ -3,17 +3,107 @@
 
 #include "TantrumnPlayerController.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "TantrumnCharacterBase.h"
 
 void ATantrumnPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-	if (InputComponent)
+
+	if (GetCharacter()->GetCharacterMovement())
 	{
-		InputComponent->BindAction("Jump", IE_Pressed, this, &ATantrumnPlayerController::OnJumpAction);
+		DefaultSpeed = GetCharacter()->GetCharacterMovement()->MaxWalkSpeed;
 	}
 }
 
-void ATantrumnPlayerController::OnJumpAction()
+void ATantrumnPlayerController::SetupInputComponent() {
+	Super::SetupInputComponent();
+	if (InputComponent) 
+	{
+		InputComponent->BindAction(TEXT("Jump"), EInputEvent::IE_Pressed, this, &ATantrumnPlayerController::RequestJump);
+		InputComponent->BindAction(TEXT("Jump"), EInputEvent::IE_Released, this, &ATantrumnPlayerController::RequestStopJump);
+
+		InputComponent->BindAction(TEXT("Crouch"), EInputEvent::IE_Pressed, this, &ATantrumnPlayerController::RequestCrouchStart);
+		InputComponent->BindAction(TEXT("Crouch"), EInputEvent::IE_Released, this, &ATantrumnPlayerController::RequestCrouchEnd);
+		InputComponent->BindAction(TEXT("Sprint"), EInputEvent::IE_Pressed, this, &ATantrumnPlayerController::RequestSprintStart);
+		InputComponent->BindAction(TEXT("Sprint"), EInputEvent::IE_Released, this, &ATantrumnPlayerController::RequestSprintEnd);
+
+		InputComponent->BindAxis(TEXT("MoveForward"), this, &ATantrumnPlayerController::RequestMoveForward);
+		InputComponent->BindAxis(TEXT("MoveRight"), this, &ATantrumnPlayerController::RequestMoveRight);
+		InputComponent->BindAxis(TEXT("LookUp"), this, &ATantrumnPlayerController::RequestLookUp);
+		InputComponent->BindAxis(TEXT("LookRight"), this, &ATantrumnPlayerController::RequestLookRight);
+		
+	}
+}
+
+void ATantrumnPlayerController::RequestMoveForward(float AxisValue) 
+{
+
+	if (AxisValue != 0.f) {
+		FRotator const ControlSpaceRot = GetControlRotation();
+		GetPawn()->AddMovementInput(FRotationMatrix(ControlSpaceRot).GetScaledAxis(EAxis::X), AxisValue);
+	}
+}
+
+void ATantrumnPlayerController::RequestMoveRight(float AxisValue) 
+{
+	if (AxisValue != 0.f) {
+		FRotator const ControlSpaceRot = GetControlRotation();
+		GetPawn()->AddMovementInput(FRotationMatrix(ControlSpaceRot).GetScaledAxis(EAxis::Y), AxisValue);
+	}
+}
+
+void ATantrumnPlayerController::RequestJump()
 {
 		GetCharacter()->Jump();
+}
+
+void ATantrumnPlayerController::RequestStopJump() 
+{
+	if (ATantrumnCharacterBase* TantrumnCharacterBase = Cast<ATantrumnCharacterBase>(GetCharacter())) 
+	{
+		GetCharacter()->StopJumping();
+	}
+}
+
+void ATantrumnPlayerController::RequestLookUp(float AxisValue) 
+{
+	AddPitchInput(AxisValue * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+}
+
+void ATantrumnPlayerController::RequestLookRight(float AxisValue) 
+{
+	AddYawInput(AxisValue * BaseLookRightRate * GetWorld()->GetDeltaSeconds());
+}
+
+void ATantrumnPlayerController::RequestSprintStart() 
+{
+	if ((GetCharacter())) 
+	{
+		GetCharacter()->GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
+	}
+}
+
+void ATantrumnPlayerController::RequestSprintEnd() 
+{
+	if (GetCharacter())
+	{
+		GetCharacter()->GetCharacterMovement()->MaxWalkSpeed = DefaultSpeed;
+	}
+}
+
+void ATantrumnPlayerController::RequestCrouchStart()
+{
+	if (GetCharacter())
+	{
+		GetCharacter()->Crouch();
+	}
+}
+
+void ATantrumnPlayerController::RequestCrouchEnd()
+{
+	if (GetCharacter())
+	{
+		GetCharacter()->UnCrouch();
+	}
 }
