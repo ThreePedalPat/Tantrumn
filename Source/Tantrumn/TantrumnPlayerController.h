@@ -6,6 +6,9 @@
 #include "GameFramework/PlayerController.h"
 #include "TantrumnPlayerController.generated.h"
 
+class ATantrumnGameModeBase;
+class UUserWidget;
+
 UCLASS()
 
 
@@ -35,6 +38,11 @@ protected:
 	void RequestLookUp(float AxisValue);
 	void RequestLookRight(float AxisValue);
 
+	void RequestPullObject();
+	void RequestStopPullObject();
+
+	void RequestThrowObject();
+
 	UPROPERTY(EditAnywhere, Category = "Look")
 		float BaseLookUpRate = 90.0f;
 
@@ -43,6 +51,14 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Movement")
 		float SprintSpeed = 1200.0f;
-	
-	float DefaultSpeed = 0.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	float DefaultSpeed = 600.0f;
+
+	ATantrumnGameModeBase* GameModeRef;
+
+	float LastAxis = 0.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
+		float FlickThreshold = 0.75f;
 };

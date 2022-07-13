@@ -2,26 +2,35 @@
 
 
 #include "TantrumnPlayerController.h"
+#include "TantrumnGameModeBase.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "TantrumnCharacterBase.h"
+#include "Kismet/KismetMathLibrary.h"
+
+static TAutoConsoleVariable<bool> CVarDisplayLaunchInputDelta(
+	TEXT("Tantrum.Character.Debug.DisplayLaunchInputDelta"),
+	false,
+	TEXT("Display Launch Input Delta"),
+	ECVF_Default);
 
 void ATantrumnPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (GetCharacter()->GetCharacterMovement())
-	{
-		DefaultSpeed = GetCharacter()->GetCharacterMovement()->MaxWalkSpeed;
-	}
+	GameModeRef = Cast<ATantrumnGameModeBase>(GetWorld()->GetAuthGameMode());
 }
 
-void ATantrumnPlayerController::SetupInputComponent() {
+void ATantrumnPlayerController::SetupInputComponent() 
+{
 	Super::SetupInputComponent();
 	if (InputComponent) 
 	{
 		InputComponent->BindAction(TEXT("Jump"), EInputEvent::IE_Pressed, this, &ATantrumnPlayerController::RequestJump);
 		InputComponent->BindAction(TEXT("Jump"), EInputEvent::IE_Released, this, &ATantrumnPlayerController::RequestStopJump);
+		InputComponent->BindAction(TEXT("PullObject"), EInputEvent::IE_Pressed, this, &ATantrumnPlayerController::RequestPullObject);
+		InputComponent->BindAction(TEXT("ThrowObjectMouse"), EInputEvent::IE_Pressed, this, &ATantrumnPlayerController::RequestThrowObject);
+		
+
 
 		InputComponent->BindAction(TEXT("Crouch"), EInputEvent::IE_Pressed, this, &ATantrumnPlayerController::RequestCrouchStart);
 		InputComponent->BindAction(TEXT("Crouch"), EInputEvent::IE_Released, this, &ATantrumnPlayerController::RequestCrouchEnd);
@@ -32,6 +41,9 @@ void ATantrumnPlayerController::SetupInputComponent() {
 		InputComponent->BindAxis(TEXT("MoveRight"), this, &ATantrumnPlayerController::RequestMoveRight);
 		InputComponent->BindAxis(TEXT("LookUp"), this, &ATantrumnPlayerController::RequestLookUp);
 		InputComponent->BindAxis(TEXT("LookRight"), this, &ATantrumnPlayerController::RequestLookRight);
+
+
+
 		
 	}
 }
@@ -39,7 +51,8 @@ void ATantrumnPlayerController::SetupInputComponent() {
 void ATantrumnPlayerController::RequestMoveForward(float AxisValue) 
 {
 
-	if (AxisValue != 0.f) {
+	if (AxisValue != 0.f) 
+	{
 		FRotator const ControlSpaceRot = GetControlRotation();
 		GetPawn()->AddMovementInput(FRotationMatrix(ControlSpaceRot).GetScaledAxis(EAxis::X), AxisValue);
 	}
@@ -47,7 +60,8 @@ void ATantrumnPlayerController::RequestMoveForward(float AxisValue)
 
 void ATantrumnPlayerController::RequestMoveRight(float AxisValue) 
 {
-	if (AxisValue != 0.f) {
+	if (AxisValue != 0.f) 
+	{
 		FRotator const ControlSpaceRot = GetControlRotation();
 		GetPawn()->AddMovementInput(FRotationMatrix(ControlSpaceRot).GetScaledAxis(EAxis::Y), AxisValue);
 	}
@@ -94,6 +108,7 @@ void ATantrumnPlayerController::RequestSprintEnd()
 
 void ATantrumnPlayerController::RequestCrouchStart()
 {
+	if (!GetCharacter()->GetCharacterMovement()->IsMovingOnGround()) {return;}
 	if (GetCharacter())
 	{
 		GetCharacter()->Crouch();
@@ -107,3 +122,35 @@ void ATantrumnPlayerController::RequestCrouchEnd()
 		GetCharacter()->UnCrouch();
 	}
 }
+
+void ATantrumnPlayerController::RequestPullObject()
+{
+	if (ATantrumnCharacterBase* TantrumnCharacterBase = Cast<ATantrumnCharacterBase>(GetCharacter()))
+	{
+		TantrumnCharacterBase->RequestPullObject();
+	}
+}
+
+void ATantrumnPlayerController::RequestStopPullObject()
+{
+	if (ATantrumnCharacterBase* TantrumnCharacterBase = Cast<ATantrumnCharacterBase>(GetCharacter()))
+	{
+		TantrumnCharacterBase->RequestStopPullObject();
+	}
+}
+
+void ATantrumnPlayerController::RequestThrowObject()
+{
+	if (ATantrumnCharacterBase* TantrumnCharacterBase = Cast<ATantrumnCharacterBase>(GetCharacter()))
+	{
+		if (TantrumnCharacterBase->CanThrowObject())
+		{
+			TantrumnCharacterBase->RequestThrowObject();			
+		}
+		else
+		{
+			LastAxis = 0.0f;
+		}
+	}
+}
+
